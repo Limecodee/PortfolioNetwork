@@ -1,0 +1,96 @@
+# simpleperf
+
+A network performance monitoring tool known as "simpleperf" was developed for the purpose of assessing the bandwidth between a server and multiple clients.
+The tool operates on a client-server architecture, wherein the clients provide data to the server for bandwidth evaluation, while the server monitors incoming connections
+## Usage
+
+### Server mode
+
+To start the simpleperf server:
+
+python3 simpleperf.py --server [--bind IP_ADDRESS] [--port PORT] [--format FORMAT]
+
+- `--bind IP_ADDRESS`: The IP address of the server's interface to bind (default: 0.0.0.0)
+- `--port PORT`: The port number for the server to listen on (default: 8088)
+- `--format FORMAT`: The format of the summary of results (options: B, KB, MB; default: MB)
+
+### Client mode
+
+To start the simpleperf client:
+
+- `--serverip SERVER_IP`: The IP address of the simpleperf server (required)
+- `--port PORT`: The port number for the server to listen on (default: 8088)
+- `--time DURATION`: The duration in seconds for which data should be generated and sent to the server (default: 25)
+- `--format FORMAT`: The format of the summary of results (options: B, KB, MB; default: MB)
+- `--interval INTERVAL`: Print statistics per interval second (optional)
+- `--parallel PARALLEL`: The number of parallel connections (default: 1)
+- `--num NUM`: The number of bytes to transfer (optional)
+
+## Test Scenarios
+
+# Test 1 Single client with default settings
+
+1. Run iPerf server on h4:
+iperf -s -u
+
+3. Run iPerf client on h1 to measure bandwidth between h1 and h4 with different bandwidth values (replace X with your own value)
+iperf -c 10.0.5.2 -u -b X -t 25
+
+## Test Case 2: Link Latency and Throughput
+
+1. Measure RTT and bandwidth for each link (L1 - L3):
+
+   a. For link L1 (r1-r2), measure latency using ping with 25 packets:
+
+ping <r2's_ip> -c 25
+
+
+b. Run simpleperf for 25 seconds to measure throughput for link L1 (r1-r2):
+
+python3 simpleperf.py --client --serverip 10.0.1.2 --time 25
+
+
+## Test Case 3: Path Latency and Throughput
+
+1. Start the server on h4:
+
+python3 simpleperf.py --server
+
+2. Start the client on h1 to measure latency and throughput:
+
+ping <h4's_ip> -c 25 > latency_h1-h4.txt
+python3 simpleperf.py --client --serverip 10.0.5.2 --time 25
+
+## Test Case 4: Effects of Multiplexing and Latency
+1. Start the servers on h4 and h5:
+python3 simpleperf.py --server 2 different ports
+
+2. Start the clients simultaneously on h1 and h2:
+For h1:
+ping 10.0.5.2 -c 25
+python3 simpleperf.py --client --serverip 10.0.5.2 --time 25
+
+For h2:
+ping 10.0.5.3 -c 25
+python3 simpleperf.py --client --serverip 10.0.5.3 --time 25
+
+## Test Case 5: Effects of Parallel Connections
+
+In this experiment, h1, h2, and h3 connected to R1 will simultaneously talk to hosts (h4, h5, and h6) connected to R3.
+h1 will open two parallel connections (with -P flag in the client mode) to communicate with h4, while h2 and h3 will invoke the normal client (without -P flag).
+
+
+1. Start the servers on h4, h5, and h6:
+python3 simpleperf.py --server    use different ports
+
+2. Start the clients:
+
+For h1 with two parallel connections:
+python3 simpleperf.py --client --serverip SERVER_IP_H4 --time 25 --parallel 2
+
+For h2 and h3 without parallel connections:
+python3 simpleperf.py --client --serverip 10.0.5.3 --time 25
+python3 simpleperf.py --client --serverip 10.0.5.4 --time 25
+
+
+Adjust the `--time`, `--format`, `--interval`, and `--num` flags according to your test requirements.
